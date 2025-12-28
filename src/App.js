@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Card, CardContent, ThemeProvider, createTheme, Switch, FormControlLabel, Box, TextField, Chip } from '@mui/material';
+import { Button, Card, CardContent, ThemeProvider, createTheme, Switch, FormControlLabel, Box, TextField } from '@mui/material';
 
 const getTheme = (mode) => createTheme({
   palette: {
     mode,
     primary: {
-      main: mode === 'dark' ? '#ff6b9d' : '#e91e63',
+      main: mode === 'dark' ? '#ffffff' : '#000000',
     },
     secondary: {
-      main: mode === 'dark' ? '#7c4dff' : '#651fff',
+      main: mode === 'dark' ? '#888888' : '#666666',
     },
     background: {
-      default: mode === 'dark' ? '#0a0a0f' : '#faf5ff',
-      paper: mode === 'dark' ? 'rgba(20, 20, 35, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+      default: mode === 'dark' ? '#0a0a0a' : '#fafafa',
+      paper: mode === 'dark' ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.98)',
     },
   },
   typography: {
@@ -20,9 +20,8 @@ const getTheme = (mode) => createTheme({
   },
 });
 
-// All questions - combined from original + PR contributions
-const allQuestions = [
-  // Original Truth Questions
+// Truth Questions (真心話)
+const truthQuestions = [
   "如果你係一種食物，你會係咩？點解？",
   "你最奇怪嘅夢係咩？",
   "如果你可以變成任何卡通人物，你會揀邊個？",
@@ -114,7 +113,6 @@ const allQuestions = [
   "你有冇試過瞞住大家做咗一件自己覺得好有趣嘅事？",
   "你試過講過最假嘅藉口係咩？",
   "你覺得自己最想改變嘅一個缺點係咩？",
-  // New questions from PR
   "分享一件你童年時，令你唔開心左好耐嘅事。",
   "分享一次網購中伏故事",
   "分享一次好老師故事。要有創意或者洋蔥！",
@@ -148,7 +146,16 @@ const allQuestions = [
   "分享三個無血緣關係，而確實係最重要嘅「緊急聯絡人」。",
   "「時光倒流一句話」，你會想同十年前自己講咩？",
   "分享一下你「最佳損友」係邊個，試問依位損友做過d咩？",
-  // Dare Questions
+  "分享最上一個「無題時想起的人」，點解會想起？",
+  "你覺得自己仲會有幾多個「下一位前度」？",
+  "你覺得「老派約會」尚有無必要？",
+  "講一個「未開始已經結束」嘅故事？",
+  "你「夢中的婚禮」係咩樣?",
+  "你有無一刻覺得自己係「錯誤的宇宙尋找愛」。",
+];
+
+// Dare Questions (大冒險)
+const dareQuestions = [
   "你最尷尬嘅舞步係咩？依家示範比大家睇！",
   "你唱過最難聽嘅卡拉OK係咩歌？而家唱一段！",
   "你最鍾意嘅尷尬笑話係咩？而家講俾大家聽！",
@@ -169,19 +176,26 @@ const allQuestions = [
   "學雞叫",
   "做一個瑜伽動作",
   "用腳趾撿起一樣嘢",
-  // Song-inspired questions from PR
   "你歌單裡面有無邊首歌係你開心個陣一定會聽？唱出黎！",
   "你歌單裡面有無邊首歌係你down個陣一定會聽？唱出黎！",
   "你歌單裡面最近/上一次聽緊邊首歌？唱出黎！",
   "你歌單裡面近期最常聽邊首歌？唱出黎！",
-  "你歌單裡面最鐘意邊首歌？唱出黎！",
+  "你歌單裡面最鍾意邊首歌？唱出黎！",
   "宜家係「懷舊金曲之夜」，你最中意邊首陳年舊曲？唱出黎！",
-  "分享最上一個「無題時想起的人」，點解會想起？",
-  "你覺得自己仲會有幾多個「下一位前度」？",
-  "你覺得「老派約會」尚有無必要？",
-  "講一個「未開始已經結束」嘅故事？",
-  "你「夢中的婚禮」係咩樣?",
-  "你有無一刻覺得自己係「錯誤的宇宙尋找愛」。",
+  "即刻Send一個Heart Emoji俾你最後一個WhatsApp對話",
+  "用一分鐘時間講一個你最尷尬嘅經歷",
+  "即刻喺社交媒體post一張無filter嘅素顏相",
+  "模仿你最鍾意嘅明星唱歌",
+  "用廣東話rap一段",
+  "即刻打電話俾屋企人話你愛佢",
+  "做20下sit-up",
+  "用一隻手食完一碗飯",
+  "閉眼畫一幅自畫像",
+  "用普通話自我介紹",
+  "即刻同身邊嘅人影一張合照",
+  "講一個冷笑話",
+  "扮一隻動物行路",
+  "用腳寫自己個名",
 ];
 
 const TruthOrDareGenerator = () => {
@@ -192,27 +206,34 @@ const TruthOrDareGenerator = () => {
   const [error, setError] = useState(null);
   const [themeMode, setThemeMode] = useState('dark');
   const [isSpinning, setIsSpinning] = useState(false);
+  const [category, setCategory] = useState('all'); // 'all', 'truth', 'dare'
+
+  const getAllQuestions = useCallback(() => [...truthQuestions, ...dareQuestions], []);
+
+  const getQuestionsByCategory = useCallback((cat) => {
+    switch(cat) {
+      case 'truth': return truthQuestions;
+      case 'dare': return dareQuestions;
+      default: return getAllQuestions();
+    }
+  }, [getAllQuestions]);
 
   useEffect(() => {
     loadQuestions();
   }, []);
 
+  useEffect(() => {
+    setQuestions(getQuestionsByCategory(category));
+  }, [category, getQuestionsByCategory]);
+
   const loadQuestions = () => {
     try {
       setLoading(true);
-      const savedQuestions = localStorage.getItem('truth-or-dare-questions-v2');
-      
-      if (savedQuestions) {
-        const parsedQuestions = JSON.parse(savedQuestions);
-        setQuestions(parsedQuestions);
-      } else {
-        setQuestions(allQuestions);
-        localStorage.setItem('truth-or-dare-questions-v2', JSON.stringify(allQuestions));
-      }
+      setQuestions(getAllQuestions());
       setError(null);
     } catch (err) {
       console.error('Error loading questions:', err);
-      setQuestions(allQuestions);
+      setQuestions(getAllQuestions());
       setError('載入問題時出錯');
     } finally {
       setLoading(false);
@@ -245,7 +266,6 @@ const TruthOrDareGenerator = () => {
       try {
         const updatedQuestions = [...questions, newQuestion.trim()];
         setQuestions(updatedQuestions);
-        localStorage.setItem('truth-or-dare-questions-v2', JSON.stringify(updatedQuestions));
         setNewQuestion("");
         setError(null);
       } catch (err) {
@@ -261,14 +281,48 @@ const TruthOrDareGenerator = () => {
 
   const theme = getTheme(themeMode);
 
+  const CategoryButton = ({ value, icon, label }) => (
+    <Button
+      onClick={() => setCategory(value)}
+      sx={{
+        flex: 1,
+        py: 1.5,
+        px: 2,
+        borderRadius: 2,
+        textTransform: 'none',
+        fontWeight: 600,
+        fontSize: '0.9rem',
+        border: '1px solid',
+        borderColor: category === value 
+          ? (themeMode === 'dark' ? '#fff' : '#000')
+          : (themeMode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'),
+        background: category === value 
+          ? (themeMode === 'dark' ? '#fff' : '#000')
+          : 'transparent',
+        color: category === value 
+          ? (themeMode === 'dark' ? '#000' : '#fff')
+          : (themeMode === 'dark' ? '#fff' : '#000'),
+        '&:hover': {
+          background: category === value 
+            ? (themeMode === 'dark' ? '#e0e0e0' : '#333')
+            : (themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'),
+          borderColor: themeMode === 'dark' ? '#fff' : '#000',
+        },
+        transition: 'all 0.2s ease',
+      }}
+    >
+      {icon} {label}
+    </Button>
+  );
+
   return (
     <ThemeProvider theme={theme}>
       <Box 
         sx={{ 
           minHeight: '100vh', 
           background: themeMode === 'dark' 
-            ? 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1a1a2e 100%)'
-            : 'linear-gradient(135deg, #faf5ff 0%, #fce7f3 25%, #f0abfc 50%, #e9d5ff 75%, #faf5ff 100%)',
+            ? 'linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)'
+            : 'linear-gradient(180deg, #fafafa 0%, #f0f0f0 50%, #fafafa 100%)',
           transition: 'background 0.5s ease',
           display: 'flex',
           alignItems: 'center',
@@ -276,70 +330,38 @@ const TruthOrDareGenerator = () => {
           padding: { xs: 2, sm: 4 },
           position: 'relative',
           overflow: 'hidden',
-          '&::before': {
-            content: '""',
+        }}
+      >
+        {/* Subtle grid pattern */}
+        <Box
+          sx={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: themeMode === 'dark'
-              ? 'radial-gradient(circle at 20% 80%, rgba(255, 107, 157, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(124, 77, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(0, 188, 212, 0.1) 0%, transparent 50%)'
-              : 'radial-gradient(circle at 20% 80%, rgba(233, 30, 99, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(156, 39, 176, 0.1) 0%, transparent 50%)',
+            backgroundImage: themeMode === 'dark'
+              ? 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)'
+              : 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.03) 1px, transparent 0)',
+            backgroundSize: '40px 40px',
             pointerEvents: 'none',
-          }
-        }}
-      >
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
-          <Box
-            key={i}
-            sx={{
-              position: 'absolute',
-              width: Math.random() * 10 + 5,
-              height: Math.random() * 10 + 5,
-              borderRadius: '50%',
-              background: themeMode === 'dark' 
-                ? `rgba(${Math.random() > 0.5 ? '255, 107, 157' : '124, 77, 255'}, ${Math.random() * 0.3 + 0.1})`
-                : `rgba(${Math.random() > 0.5 ? '233, 30, 99' : '156, 39, 176'}, ${Math.random() * 0.2 + 0.1})`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${Math.random() * 10 + 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
-              pointerEvents: 'none',
-            }}
-          />
-        ))}
+          }}
+        />
         
         <Card 
           sx={{ 
             width: '100%',
-            maxWidth: { xs: '100%', sm: 500, md: 550 },
+            maxWidth: { xs: '100%', sm: 520, md: 580 },
             backgroundColor: 'background.paper',
             borderRadius: 4,
             boxShadow: themeMode === 'dark'
-              ? '0 25px 80px -12px rgba(255, 107, 157, 0.25), 0 15px 40px -10px rgba(124, 77, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-              : '0 25px 80px -12px rgba(233, 30, 99, 0.2), 0 15px 40px -10px rgba(156, 39, 176, 0.15)',
+              ? '0 25px 80px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05)'
+              : '0 25px 80px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05)',
             border: '1px solid',
-            borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(233, 30, 99, 0.2)',
+            borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
             backdropFilter: 'blur(20px)',
             position: 'relative',
             overflow: 'visible',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: -2,
-              left: -2,
-              right: -2,
-              bottom: -2,
-              background: themeMode === 'dark'
-                ? 'linear-gradient(135deg, rgba(255, 107, 157, 0.5), rgba(124, 77, 255, 0.5), rgba(0, 188, 212, 0.5))'
-                : 'linear-gradient(135deg, rgba(233, 30, 99, 0.4), rgba(156, 39, 176, 0.4))',
-              borderRadius: 5,
-              zIndex: -1,
-              opacity: 0.5,
-              filter: 'blur(20px)',
-            }
           }}
         >
           <CardContent sx={{ padding: { xs: 3, sm: 5 }, '&:last-child': { pb: { xs: 3, sm: 5 } } }}>
@@ -366,12 +388,7 @@ const TruthOrDareGenerator = () => {
                       margin: 0,
                       fontSize: { xs: '1.8rem', sm: '2.2rem' },
                       fontWeight: 800,
-                      background: themeMode === 'dark'
-                        ? 'linear-gradient(135deg, #fff 0%, #ff6b9d 50%, #7c4dff 100%)'
-                        : 'linear-gradient(135deg, #e91e63 0%, #9c27b0 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
+                      color: themeMode === 'dark' ? '#fff' : '#000',
                       letterSpacing: '-0.02em',
                     }}
                   >
@@ -383,7 +400,7 @@ const TruthOrDareGenerator = () => {
                   sx={{
                     margin: 0,
                     fontSize: '0.95rem',
-                    color: themeMode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
+                    color: themeMode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
                     fontWeight: 500,
                     pl: 0.5,
                   }}
@@ -398,10 +415,13 @@ const TruthOrDareGenerator = () => {
                     onChange={handleThemeToggle} 
                     sx={{
                       '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: '#ff6b9d',
+                        color: '#fff',
                       },
                       '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: '#ff6b9d',
+                        backgroundColor: '#666',
+                      },
+                      '& .MuiSwitch-track': {
+                        backgroundColor: '#999',
                       }
                     }}
                   />
@@ -415,6 +435,17 @@ const TruthOrDareGenerator = () => {
                   }
                 }}
               />
+            </Box>
+
+            {/* Category Selection */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1.5, 
+              mb: 3,
+            }}>
+              <CategoryButton value="all" icon="🎲" label="全部" />
+              <CategoryButton value="truth" icon="💬" label="真心話" />
+              <CategoryButton value="dare" icon="🔥" label="大冒險" />
             </Box>
             
             {/* Loading State */}
@@ -430,7 +461,7 @@ const TruthOrDareGenerator = () => {
                 textAlign: 'center', 
                 py: 2,
                 mb: 2,
-                background: 'rgba(255, 82, 82, 0.1)',
+                background: themeMode === 'dark' ? 'rgba(255, 82, 82, 0.1)' : 'rgba(255, 82, 82, 0.05)',
                 borderRadius: 2,
                 border: '1px solid rgba(255, 82, 82, 0.3)'
               }}>
@@ -451,14 +482,13 @@ const TruthOrDareGenerator = () => {
                 py: 2,
                 fontSize: '1.25rem',
                 fontWeight: 700,
-                background: themeMode === 'dark'
-                  ? 'linear-gradient(135deg, #ff6b9d 0%, #7c4dff 50%, #00bcd4 100%)'
-                  : 'linear-gradient(135deg, #e91e63 0%, #9c27b0 100%)',
-                backgroundSize: '200% 200%',
-                animation: isSpinning ? 'gradient 0.5s ease infinite' : 'gradient 5s ease infinite',
+                background: themeMode === 'dark' ? '#fff' : '#000',
+                color: themeMode === 'dark' ? '#000' : '#fff',
                 borderRadius: 3,
                 textTransform: 'none',
-                boxShadow: '0 8px 32px rgba(255, 107, 157, 0.4)',
+                boxShadow: themeMode === 'dark' 
+                  ? '0 8px 32px rgba(255, 255, 255, 0.15)'
+                  : '0 8px 32px rgba(0, 0, 0, 0.2)',
                 border: 'none',
                 position: 'relative',
                 overflow: 'hidden',
@@ -469,18 +499,22 @@ const TruthOrDareGenerator = () => {
                   left: '-100%',
                   width: '100%',
                   height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                  background: themeMode === 'dark'
+                    ? 'linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent)'
+                    : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
                   animation: 'shimmer 2s infinite',
                 },
                 '&:hover': { 
+                  background: themeMode === 'dark' ? '#e0e0e0' : '#333',
                   transform: 'translateY(-3px)',
-                  boxShadow: '0 12px 40px rgba(255, 107, 157, 0.5)',
+                  boxShadow: themeMode === 'dark' 
+                    ? '0 12px 40px rgba(255, 255, 255, 0.2)'
+                    : '0 12px 40px rgba(0, 0, 0, 0.3)',
                 },
                 '&:disabled': {
-                  background: themeMode === 'dark'
-                    ? 'linear-gradient(135deg, #ff6b9d 0%, #7c4dff 50%, #00bcd4 100%)'
-                    : 'linear-gradient(135deg, #e91e63 0%, #9c27b0 100%)',
-                  opacity: 0.8,
+                  background: themeMode === 'dark' ? '#fff' : '#000',
+                  color: themeMode === 'dark' ? '#000' : '#fff',
+                  opacity: 0.7,
                 },
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
@@ -495,13 +529,13 @@ const TruthOrDareGenerator = () => {
                   mb: 4, 
                   p: 3,
                   background: themeMode === 'dark'
-                    ? 'linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(124, 77, 255, 0.1))'
-                    : 'linear-gradient(135deg, rgba(233, 30, 99, 0.08), rgba(156, 39, 176, 0.08))',
+                    ? 'rgba(255, 255, 255, 0.03)'
+                    : 'rgba(0, 0, 0, 0.02)',
                   borderRadius: 3,
                   border: '1px solid',
                   borderColor: themeMode === 'dark' 
-                    ? 'rgba(255, 107, 157, 0.2)' 
-                    : 'rgba(233, 30, 99, 0.2)',
+                    ? 'rgba(255, 255, 255, 0.1)' 
+                    : 'rgba(0, 0, 0, 0.1)',
                   animation: isSpinning ? 'pulse 0.15s ease-in-out infinite' : 'slideIn 0.5s ease-out',
                 }}
               >
@@ -523,7 +557,7 @@ const TruthOrDareGenerator = () => {
             
             {/* Add Question Section */}
             <Box sx={{ 
-              background: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              background: themeMode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
               borderRadius: 3,
               p: 3,
               border: '1px solid',
@@ -555,15 +589,15 @@ const TruthOrDareGenerator = () => {
                   mb: 2,
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
-                    background: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                    background: themeMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
                     '& fieldset': {
                       borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
                     },
                     '&:hover fieldset': {
-                      borderColor: themeMode === 'dark' ? 'rgba(255, 107, 157, 0.5)' : 'rgba(233, 30, 99, 0.5)',
+                      borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
                     },
                     '&.Mui-focused fieldset': {
-                      borderColor: '#ff6b9d',
+                      borderColor: themeMode === 'dark' ? '#fff' : '#000',
                     }
                   },
                   '& .MuiInputBase-input': {
@@ -586,11 +620,11 @@ const TruthOrDareGenerator = () => {
                   borderRadius: 2,
                   textTransform: 'none',
                   fontWeight: 600,
-                  borderColor: themeMode === 'dark' ? 'rgba(255, 107, 157, 0.5)' : 'rgba(233, 30, 99, 0.5)',
-                  color: themeMode === 'dark' ? '#ff6b9d' : '#e91e63',
+                  borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                  color: themeMode === 'dark' ? '#fff' : '#000',
                   '&:hover': { 
-                    borderColor: '#ff6b9d',
-                    background: 'rgba(255, 107, 157, 0.1)',
+                    borderColor: themeMode === 'dark' ? '#fff' : '#000',
+                    background: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
                   },
                   '&:disabled': {
                     opacity: 0.4,
@@ -612,13 +646,13 @@ const TruthOrDareGenerator = () => {
               <Box 
                 component="p" 
                 sx={{ 
-                  color: themeMode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', 
+                  color: themeMode === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', 
                   fontSize: '0.85rem', 
                   m: 0,
                   fontWeight: 500
                 }}
               >
-                📊 總問題數: {questions.length} • 本地儲存 💾
+                📊 {category === 'all' ? '全部' : category === 'truth' ? '真心話' : '大冒險'}: {questions.length} 條問題
               </Box>
             </Box>
           </CardContent>
@@ -628,11 +662,6 @@ const TruthOrDareGenerator = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;600;700;800&display=swap');
         
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(180deg); }
-        }
-        
         @keyframes bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
@@ -641,12 +670,6 @@ const TruthOrDareGenerator = () => {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
         }
         
         @keyframes shimmer {
@@ -675,8 +698,13 @@ const TruthOrDareGenerator = () => {
         
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 107, 157, 0.3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 107, 157, 0.5); }
+        ::-webkit-scrollbar-thumb { 
+          background: rgba(128, 128, 128, 0.3); 
+          border-radius: 4px; 
+        }
+        ::-webkit-scrollbar-thumb:hover { 
+          background: rgba(128, 128, 128, 0.5); 
+        }
       `}</style>
     </ThemeProvider>
   );
