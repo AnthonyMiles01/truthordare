@@ -235,26 +235,43 @@ const TruthOrDareGenerator = () => {
 
   const trackVisitor = useCallback(async () => {
     try {
+      // Get or create unique visitor ID
       let visitorId = localStorage.getItem('visitorId');
+      const isNewVisitor = !visitorId;
       if (!visitorId) {
-        visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('visitorId', visitorId);
       }
 
-      const response = await fetch('http://localhost:5001/api/visitor', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ visitorId }),
-      });
-
-      if (response.ok) {
-        const stats = await response.json();
-        setVisitorStats(stats);
+      // Use CountAPI for production visitor tracking
+      const namespace = 'haileycheng-truthordare';
+      
+      // Increment total visits
+      const hitRes = await fetch(`https://api.countapi.xyz/hit/${namespace}/visits`);
+      const hitData = await hitRes.json();
+      
+      // Track unique visitors (only increment if new)
+      let uniqueCount = 0;
+      if (isNewVisitor) {
+        const uniqueRes = await fetch(`https://api.countapi.xyz/hit/${namespace}/unique`);
+        const uniqueData = await uniqueRes.json();
+        uniqueCount = uniqueData.value || 0;
+      } else {
+        const uniqueRes = await fetch(`https://api.countapi.xyz/get/${namespace}/unique`);
+        const uniqueData = await uniqueRes.json();
+        uniqueCount = uniqueData.value || 0;
       }
+
+      setVisitorStats({
+        uniqueVisitors: uniqueCount,
+        totalVisits: hitData.value || 0
+      });
     } catch (err) {
       console.error('Error tracking visitor:', err);
+      // Fallback: just show local visit count
+      const localVisits = parseInt(localStorage.getItem('localVisits') || '0') + 1;
+      localStorage.setItem('localVisits', localVisits.toString());
+      setVisitorStats({ uniqueVisitors: '-', totalVisits: localVisits });
     }
   }, []);
 
