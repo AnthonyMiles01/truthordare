@@ -5,6 +5,10 @@ const cors = require('cors');
 const app = express();
 const PORT = 5001;
 
+// Visitor tracking
+let visitors = new Set();
+let totalVisits = 0;
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -58,6 +62,30 @@ app.use('/questions', questionsRoutes);
 // Basic route for testing
 app.get('/', (req, res) => {
   res.json({ message: 'Truth or Dare API is running!' });
+});
+
+// Visitor tracking endpoints
+app.post('/api/visitor', (req, res) => {
+  const { visitorId } = req.body;
+  
+  if (visitorId) {
+    if (!visitors.has(visitorId)) {
+      visitors.add(visitorId);
+    }
+    totalVisits++;
+  }
+  
+  res.json({
+    uniqueVisitors: visitors.size,
+    totalVisits: totalVisits
+  });
+});
+
+app.get('/api/stats', (req, res) => {
+  res.json({
+    uniqueVisitors: visitors.size,
+    totalVisits: totalVisits
+  });
 });
 
 app.listen(PORT, () => {

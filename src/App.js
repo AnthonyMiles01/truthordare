@@ -207,6 +207,7 @@ const TruthOrDareGenerator = () => {
   const [themeMode, setThemeMode] = useState('dark');
   const [isSpinning, setIsSpinning] = useState(false);
   const [category, setCategory] = useState('all'); // 'all', 'truth', 'dare'
+  const [visitorStats, setVisitorStats] = useState({ uniqueVisitors: 0, totalVisits: 0 });
 
   const getAllQuestions = useCallback(() => [...truthQuestions, ...dareQuestions], []);
 
@@ -220,13 +221,41 @@ const TruthOrDareGenerator = () => {
 
   useEffect(() => {
     loadQuestions();
-  }, []);
+    trackVisitor();
+  }, [loadQuestions]);
+
+  const trackVisitor = async () => {
+    try {
+      // Get or create a unique visitor ID
+      let visitorId = localStorage.getItem('visitorId');
+      if (!visitorId) {
+        visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('visitorId', visitorId);
+      }
+
+      // Send visitor tracking request
+      const response = await fetch('http://localhost:5001/api/visitor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ visitorId }),
+      });
+
+      if (response.ok) {
+        const stats = await response.json();
+        setVisitorStats(stats);
+      }
+    } catch (err) {
+      console.error('Error tracking visitor:', err);
+    }
+  };
 
   useEffect(() => {
     setQuestions(getQuestionsByCategory(category));
   }, [category, getQuestionsByCategory]);
 
-  const loadQuestions = () => {
+  const loadQuestions = useCallback(() => {
     try {
       setLoading(true);
       setQuestions(getAllQuestions());
@@ -238,7 +267,7 @@ const TruthOrDareGenerator = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAllQuestions]);
 
   const generateQuestion = useCallback(() => {
     if (questions.length === 0) {
@@ -649,10 +678,22 @@ const TruthOrDareGenerator = () => {
                   color: themeMode === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', 
                   fontSize: '0.85rem', 
                   m: 0,
+                  mb: 1,
                   fontWeight: 500
                 }}
               >
                 📊 {category === 'all' ? '全部' : category === 'truth' ? '真心話' : '大冒險'}: {questions.length} 條問題
+              </Box>
+              <Box 
+                component="p" 
+                sx={{ 
+                  color: themeMode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', 
+                  fontSize: '0.8rem', 
+                  m: 0,
+                  fontWeight: 400
+                }}
+              >
+                👥 訪客: {visitorStats.uniqueVisitors} | 🔢 總訪問: {visitorStats.totalVisits}
               </Box>
             </Box>
           </CardContent>
